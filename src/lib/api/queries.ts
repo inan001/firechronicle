@@ -61,7 +61,29 @@ export function useBlocksSummary() {
   return useQuery({
     queryKey: queryKeys.blocksSummary(dataClient.mode),
     queryFn: () => dataClient.getBlocksSummary(),
+    enabled: dataClient.mode !== "live",
     staleTime: 1000 * 60 * 30,
+  });
+}
+
+export function useSpatialData(year: number, month: number, daynight: string = "ALL") {
+  return useQuery({
+    queryKey: [...queryKeys.all, "spatial", year, month, daynight, dataClient.mode],
+    queryFn: async () => {
+      if (typeof dataClient.getSpatial === "function") {
+        return (await dataClient.getSpatial({ year, month, daynight })) as {
+          type: "FeatureCollection";
+          features: Array<{
+            type: "Feature";
+            properties: Record<string, unknown>;
+            geometry: unknown;
+          }>;
+        };
+      }
+      return null;
+    },
+    enabled: dataClient.mode === "live",
+    staleTime: 1000 * 60 * 10,
   });
 }
 

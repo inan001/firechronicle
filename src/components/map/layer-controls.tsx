@@ -15,7 +15,7 @@ const LAYER_STATUS_DESCRIPTIONS: Record<DataLayer, string> = {
 export function LayerControls({ provisionalAvailable = false }: { provisionalAvailable?: boolean }) {
   const layer = useSelection(s => s.activeLayer);
   const setLayer = useSelection(s => s.setLayer);
-  return <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+  return <div data-tour="filter-controls" className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
     <h2 className="flex items-center gap-2 text-sm font-medium"><Layers3 className="size-4 text-muted-foreground" aria-hidden="true" />Data layers</h2>
     <Tabs value={layer} onValueChange={v => { if (v === "observed" || v === "estimated" || v === "provisional") setLayer(v); }}>
       <TabsList aria-label="Requested data layer" className="h-auto! max-w-full flex-wrap gap-1 bg-background p-1">

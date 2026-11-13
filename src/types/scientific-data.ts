@@ -68,6 +68,8 @@ export const CalendarMonthItemSchema = z.object({
   value: z.number().nullable(),
   value_type: z.enum(["estimated", "observed"]).nullable(),
   status: z.enum(["ok", "unsupported_period", "partial_observation", "missing"]),
+  era: z.string().optional(),
+  coverage_status: z.string().optional(),
   measurement_unit: z.string().nullable(),
   coverage_notice: z.string().optional(),
 });
@@ -202,4 +204,16 @@ export interface IDataClient {
   getCalendarMatrix(): Promise<CalendarMatrixPayload>;
   getBlocksSummary(): Promise<BlocksSummaryPayload>;
   getModelMetrics(): Promise<ModelMetricsPayload>;
+  getSpatial?(
+    paramsOrPeriod:
+      | {
+          year: number;
+          month: number;
+          resolution?: string;
+          regionId?: string;
+          daynight?: string;
+        }
+      | string,
+    optionalMonth?: number
+  ): Promise<unknown>;
 }
