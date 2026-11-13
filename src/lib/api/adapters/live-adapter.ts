@@ -119,7 +119,12 @@ export class LiveApiAdapter implements IDataClient {
   private readonly baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = (baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
+    this.baseUrl = (
+      baseUrl ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://127.0.0.1:8000"
+    ).replace(/\/$/, "");
   }
 
   async request(endpoint: string): Promise<unknown> {
@@ -311,6 +316,8 @@ export class LiveApiAdapter implements IDataClient {
         value: item.value,
         value_type: item.value_type,
         status: item.status,
+        era: item.value_type === "estimated" ? "estimated" : item.value_type === "observed" ? "observed" : undefined,
+        coverage_status: item.coverage_status,
         measurement_unit: item.measurement_unit,
         coverage_notice: item.completeness_notice,
       });
@@ -318,10 +325,36 @@ export class LiveApiAdapter implements IDataClient {
 
     const years: CalendarYearRow[] = Array.from(yearsMap.entries())
       .sort(([a], [b]) => a - b)
-      .map(([year, months]) => ({
-        year,
-        months: months.sort((a, b) => a.month - b.month),
-      }));
+      .map(([year, existingMonths]) => {
+        const monthMap = new Map<number, CalendarMonthItem>(
+          existingMonths.map((m) => [m.month, m])
+        );
+        const fullMonths: CalendarMonthItem[] = [];
+        for (let m = 1; m <= 12; m++) {
+          const existing = monthMap.get(m);
+          if (existing) {
+            fullMonths.push(existing);
+          } else {
+            // Pad missing months (e.g. 2002-01 through 2002-06) with explicit NULL / pre_aqua_unsupported
+            fullMonths.push({
+              month: m,
+              month_name: MONTHS[m - 1],
+              period: `${year}-${String(m).padStart(2, "0")}`,
+              value: null,
+              value_type: null,
+              status: "unsupported_period",
+              era: "unsupported",
+              coverage_status: "pre_aqua_unavailable",
+              measurement_unit: null,
+              coverage_notice: "Pre-commissioning period. Aqua MODIS operational July 2002.",
+            });
+          }
+        }
+        return {
+          year,
+          months: fullMonths,
+        };
+      });
 
     const payload: CalendarMatrixPayload = {
       regionId: "BR-PA",

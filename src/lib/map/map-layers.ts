@@ -26,8 +26,28 @@ function source(map: MapLibreMap, id: string, data: GeoJSON | null) {
 }
 
 /**
+ * Extracts numeric fire detection count from GeoJSON feature properties,
+ * checking standard backend property aliases (count, viirs_count, estimated_viirs_count, etc.)
+ */
+export function extractBlockValue(properties: Record<string, unknown> | null | undefined): number | null {
+  if (!properties) return null;
+  const val =
+    properties.current_value ??
+    properties.viirs_count ??
+    properties.estimated_viirs_count ??
+    properties.harmonized_count ??
+    properties.count ??
+    properties.estimated_count ??
+    properties.modis_count ??
+    null;
+  if (val === null || val === undefined) return null;
+  const num = Number(val);
+  return Number.isFinite(num) ? num : null;
+}
+
+/**
  * Builds data-driven fill color expression based on era (estimated amber vs observed emerald)
- * and monthly detection counts. Preserves missing/null as transparent neutral.
+ * and monthly detection counts. True NULL / unobserved blocks remain transparent.
  */
 function getBlockFillColor(
   colors: { green: string; amber: string; text: string; border: string },
@@ -40,55 +60,55 @@ function getBlockFillColor(
     // Warm Amber ramp for historical estimated era (2002-2011)
     return [
       "case",
-      ["==", ["get", "current_value"], null], colors.border,
-      ["<=", ["get", "current_value"], 0], colors.border,
+      ["==", ["get", "current_value"], null], "rgba(0,0,0,0)",
+      ["<=", ["get", "current_value"], 0], "rgba(0,0,0,0)",
       [
         "step",
         ["get", "current_value"],
-        "#b45309", // 1-10
-        10, "#d97706", // 11-50
+        "#fef08a", // 1-10
+        10, "#fbbf24", // 11-50
         50, "#f59e0b", // 51-200
-        200, "#fbbf24", // 201-1000
-        1000, "#fef08a" // >1000
+        200, "#d97706", // 201-1000
+        1000, "#b45309" // >1000
       ]
     ];
   }
 
-  // Emerald ramp for modern observed era (2012-2020)
+  // Light-to-dark emerald ramp for modern observed era (2012-2020)
   return [
     "case",
-    ["==", ["get", "current_value"], null], colors.border,
-    ["<=", ["get", "current_value"], 0], colors.border,
+    ["==", ["get", "current_value"], null], "rgba(0,0,0,0)",
+    ["<=", ["get", "current_value"], 0], "rgba(0,0,0,0)",
     [
       "step",
       ["get", "current_value"],
-      "#047857", // 1-10
-      10, "#059669", // 11-50
+      "#a7f3d0", // 1-10 (light green)
+      10, "#34d399", // 11-50
       50, "#10b981", // 51-200
-      200, "#34d399", // 201-1000
-      1000, "#a7f3d0" // >1000
+      200, "#059669", // 201-1000
+      1000, "#047857" // >1000 (dark green)
     ]
   ];
 }
 
 /**
  * Builds data-driven fill opacity expression.
- * Missing/unobserved passes remain subtle (0.04), while active detections scale up (0.35 to 0.88).
+ * True NULL / unobserved blocks remain transparent (0.0), while active detections scale up (0.35 to 0.90).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getBlockFillOpacity(): any {
   return [
     "case",
-    ["==", ["get", "current_value"], null], 0.04,
-    ["<=", ["get", "current_value"], 0], 0.04,
+    ["==", ["get", "current_value"], null], 0.0,
+    ["<=", ["get", "current_value"], 0], 0.0,
     [
       "step",
       ["get", "current_value"],
       0.35, // 1-10
       10, 0.50, // 11-50
       50, 0.65, // 51-200
-      200, 0.78, // 201-1000
-      1000, 0.88 // >1000
+      200, 0.80, // 201-1000
+      1000, 0.90 // >1000
     ]
   ];
 }
@@ -112,7 +132,8 @@ export function syncMapLayers(
     blocksGeojson = {
       ...data.blocks.geojson,
       features: data.blocks.geojson.features.map((f) => {
-        const val = blockValues ? (blockValues[f.properties.block_id] ?? null) : null;
+        const explicitVal = blockValues ? (blockValues[f.properties.block_id] ?? null) : null;
+        const val = explicitVal !== null ? explicitVal : extractBlockValue(f.properties);
         return {
           ...f,
           properties: {

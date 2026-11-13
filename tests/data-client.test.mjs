@@ -386,3 +386,72 @@ test("LiveApiAdapter queries /spatial with separate year, month, resolution, reg
     globalThis.fetch = originalFetch;
   }
 });
+
+test("LiveApiAdapter pads year 2002 months 1-6 with pre_aqua_unsupported cells to guarantee 12 months", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url) => {
+      const u = String(url);
+      if (u.includes("/api/v1/harmonized")) {
+        // Backend returns only 6 active months for 2002 (2002-07 to 2002-12)
+        const items = [];
+        for (let m = 7; m <= 12; m++) {
+          items.push({
+            year: 2002,
+            month: m,
+            period: `2002-${String(m).padStart(2, "0")}`,
+            estimated_viirs_count: 500 * m,
+            value_type: "estimated",
+            prediction_status: "ok_preliminary",
+            coverage_status: m === 7 ? "partial_observation" : "complete",
+            completeness_notice: m === 7 ? "Commissioning month: Aqua MODIS operational July 2002" : undefined,
+          });
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ region_id: "BR-PA", items }),
+        };
+      }
+      if (u.includes("/api/v1/summary")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ region_id: "BR-PA" }),
+        };
+      }
+      return { ok: false, status: 404, text: async () => "Not Found" };
+    };
+
+    const adapter = new LiveApiAdapter("http://localhost:8000");
+    const calData = await adapter.getCalendarMatrix();
+
+    assert.equal(calData.regionId, "BR-PA");
+    assert.equal(calData.years.length, 1);
+    assert.equal(calData.years[0].year, 2002);
+    assert.equal(calData.years[0].months.length, 12, "Year 2002 must have exactly 12 month items");
+
+    // Check padded months 1 through 6
+    for (let m = 1; m <= 6; m++) {
+      const cell = calData.years[0].months[m - 1];
+      assert.equal(cell.month, m);
+      assert.equal(cell.period, `2002-${String(m).padStart(2, "0")}`);
+      assert.equal(cell.value, null, `Padded month ${m} must have value: null (never 0)`);
+      assert.equal(cell.value_type, null);
+      assert.equal(cell.status, "unsupported_period");
+      assert.equal(cell.era, "unsupported");
+      assert.equal(cell.coverage_status, "pre_aqua_unavailable");
+      assert.ok(cell.coverage_notice.includes("Pre-commissioning period"));
+    }
+
+    // Check active months 7 through 12
+    assert.equal(calData.years[0].months[6].month, 7);
+    assert.equal(calData.years[0].months[6].value, 3500);
+    assert.equal(calData.years[0].months[6].value_type, "estimated");
+    assert.equal(calData.years[0].months[6].era, "estimated");
+    assert.equal(calData.years[0].months[11].month, 12);
+    assert.equal(calData.years[0].months[11].value, 6000);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
