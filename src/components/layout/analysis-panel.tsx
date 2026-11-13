@@ -118,7 +118,7 @@ export function AnalysisPanel() {
   }
 
   return (
-    <div data-tour="analytics-panel" className="flex h-full flex-col rounded-xl border border-border bg-card">
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border p-4">
         <h2 className="text-sm font-medium">Selection overview</h2>
         <LocateFixed className="size-4 text-muted-foreground" aria-hidden="true" />

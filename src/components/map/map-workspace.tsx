@@ -7,7 +7,7 @@ import { useSelection } from "@/store/selection-store";
 import { MONTHS, isEraCompatible } from "@/types/explorer";
 import { PENDING_MAP_DATA, type MapData } from "@/types/map-data";
 import { resolveMapData } from "@/lib/map/verified-data";
-import { useMapData, useBlocksSummary, useSpatialData } from "@/lib/api/queries";
+import { useMapData, useBlocksSummary } from "@/lib/api/queries";
 import { LayerControls } from "@/components/map/layer-controls";
 import { ScienceStatus } from "@/components/ui/science-status";
 import { DataState } from "@/components/ui/data-state";
@@ -29,7 +29,6 @@ export function MapWorkspace({ data }: { data?: MapData }) {
   const block = useSelection(s => s.block_id);
   const setBlock = useSelection(s => s.setBlock);
   const setLayer = useSelection(s => s.setLayer);
-  const { data: spatialData } = useSpatialData(year, month);
   const resolved = useMemo(() => resolveMapData(effectiveData, year, month, layer), [effectiveData, year, month, layer]);
   const compatible = isEraCompatible(year, layer);
   const blockIds = useMemo(() => resolved.blocks?.geojson.features.map(f => f.properties.block_id) ?? [], [resolved.blocks]);
@@ -39,50 +38,13 @@ export function MapWorkspace({ data }: { data?: MapData }) {
   const periodKey = `${year}-${String(month).padStart(2, "0")}`;
   const periodIdx = blocksSummary?.periods ? blocksSummary.periods.indexOf(periodKey) : -1;
   const blockValues = useMemo(() => {
-    // 1. Live mode: Extract values from /api/v1/spatial GeoJSON
-    if (spatialData && Array.isArray(spatialData.features)) {
-      const map: Record<string, number | null> = {};
-      for (const feat of spatialData.features) {
-        const p = (feat.properties || {}) as Record<string, unknown>;
-        const bId = (p.block_id || p.id || "") as string;
-        if (!bId) continue;
-        const raw =
-          p.viirs_count ??
-          p.estimated_viirs_count ??
-          p.harmonized_count ??
-          p.count ??
-          p.estimated_count ??
-          p.modis_count ??
-          null;
-        map[bId] = raw !== null && raw !== undefined ? Number(raw) : null;
-      }
-      return map;
-    }
-
-    // 2. Static / mock mode: Extract values from precomputed blocksSummary matrix
     if (!blocksSummary || periodIdx === -1) return null;
     const map: Record<string, number | null> = {};
     for (const [id, item] of Object.entries(blocksSummary.blocks)) {
       map[id] = item.values[periodIdx] ?? null;
     }
     return map;
-  }, [spatialData, blocksSummary, periodIdx]);
-
-  const blockCoverage = useMemo(() => {
-    if (spatialData && Array.isArray(spatialData.features)) {
-      const map: Record<string, string> = {};
-      for (const feat of spatialData.features) {
-        const p = (feat.properties || {}) as Record<string, unknown>;
-        const bId = (p.block_id || p.id || "") as string;
-        if (bId && p.coverage_status) {
-          map[bId] = String(p.coverage_status);
-        }
-      }
-      return map;
-    }
-    return null;
-  }, [spatialData]);
-
+  }, [blocksSummary, periodIdx]);
   const era = year < 2012 ? "estimated" : "observed";
 
   useEffect(() => {
@@ -107,16 +69,13 @@ export function MapWorkspace({ data }: { data?: MapData }) {
       <p className="flex items-center gap-2 text-sm font-medium"><MapPin className="size-4 text-primary" aria-hidden="true" />Pará, Brazil</p>
       <p className="text-xs text-muted-foreground">{resolved.boundary ? `Official IBGE boundary · ${resolved.boundary.version}` : "Official Pará boundary pending"}</p>
     </div>
-    <div data-tour="map-canvas" className="relative">
-      <ParaMap
-        data={resolved}
-        selectedBlock={selectedBlock}
-        onSelectBlock={selectBlock}
-        blockValues={blockValues}
-        blockCoverage={blockCoverage}
-        era={era}
-      />
-    </div>
+    <ParaMap
+      data={resolved}
+      selectedBlock={selectedBlock}
+      onSelectBlock={selectBlock}
+      blockValues={blockValues}
+      era={era}
+    />
     <div className="space-y-3 border-t border-border p-4">
       {/* Quantitative Choropleth Legend */}
       <div className="rounded-lg border border-border bg-card/60 p-3 text-xs space-y-2">
@@ -137,14 +96,14 @@ export function MapWorkspace({ data }: { data?: MapData }) {
           <div className="flex items-center gap-1.5">
             <span
               className="size-3.5 rounded"
-              style={{ backgroundColor: era === "estimated" ? "#fef08a" : "#a7f3d0" }}
+              style={{ backgroundColor: era === "estimated" ? "#b45309" : "#047857" }}
             />
             <span className="text-muted-foreground">1–10</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span
               className="size-3.5 rounded"
-              style={{ backgroundColor: era === "estimated" ? "#fbbf24" : "#34d399" }}
+              style={{ backgroundColor: era === "estimated" ? "#d97706" : "#059669" }}
             />
             <span className="text-muted-foreground">11–50</span>
           </div>
@@ -158,14 +117,14 @@ export function MapWorkspace({ data }: { data?: MapData }) {
           <div className="flex items-center gap-1.5">
             <span
               className="size-3.5 rounded"
-              style={{ backgroundColor: era === "estimated" ? "#d97706" : "#059669" }}
+              style={{ backgroundColor: era === "estimated" ? "#fbbf24" : "#34d399" }}
             />
             <span className="text-muted-foreground">201–1,000</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span
               className="size-3.5 rounded"
-              style={{ backgroundColor: era === "estimated" ? "#b45309" : "#047857" }}
+              style={{ backgroundColor: era === "estimated" ? "#fef08a" : "#a7f3d0" }}
             />
             <span className="text-muted-foreground">&gt;1,000</span>
           </div>
@@ -181,7 +140,7 @@ export function MapWorkspace({ data }: { data?: MapData }) {
       <div className="flex flex-wrap items-center gap-3">
         {blockIds.length > 0 ? <><span id="block-label" className="text-xs text-muted-foreground">Supported 50 km block</span><Select value={selectedBlock} onValueChange={id => id && selectBlock(id)}><SelectTrigger aria-labelledby="block-label" className="h-11 min-w-40 data-[size=default]:h-11"><SelectValue placeholder="Choose a block" /></SelectTrigger><SelectContent alignItemWithTrigger={false}>{blockIds.map(id => <SelectItem key={id} value={id} className="min-h-11">{id}</SelectItem>)}</SelectContent></Select>{selectedBlock && <Button className="h-11" variant="ghost" onClick={() => setBlock(null)}>Clear selection</Button>}</> : <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground"><ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden="true" />Selection unavailable · verified 50 km block polygons have not arrived.</p>}
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{overlay ? `${overlay.sourceLabel} · ${overlay.resolutionLabel} · coverage: ${overlay.coverageStatus ?? "Not supplied"}. Quantitative 50 km block choropleth active.` : (compatible && (periodIdx !== -1 || !!spatialData) ? `50 km canonical grid (${blockIds.length} blocks) · Quantitative choropleth active for ${MONTHS[month - 1]} ${year}.` : "No scientific records loaded for this period. Coverage and detection counts remain unknown.")}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{overlay ? `${overlay.sourceLabel} · ${overlay.resolutionLabel} · coverage: ${overlay.coverageStatus ?? "Not supplied"}. Quantitative 50 km block choropleth active.` : (compatible && periodIdx !== -1 ? `50 km canonical grid (${blockIds.length} blocks) · Quantitative choropleth active for ${MONTHS[month - 1]} ${year}.` : "No scientific records loaded for this period. Coverage and detection counts remain unknown.")}</p>
       <p className="text-xs leading-relaxed text-muted-foreground">Basemap: <a className="rounded underline underline-offset-2 hover:text-foreground" href="https://openfreemap.org/" target="_blank" rel="noreferrer">OpenFreeMap</a> · © <a className="rounded underline underline-offset-2 hover:text-foreground" href="https://openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> · Data from <a className="rounded underline underline-offset-2 hover:text-foreground" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></p>
       <div className="flex gap-2 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><p>Basemap borders are geographic context, not the frozen study polygon. Historical estimates remain at 50 km. Panning outside Pará does not enable analysis.</p></div>
     </div>

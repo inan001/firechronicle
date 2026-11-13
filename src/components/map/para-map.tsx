@@ -17,7 +17,6 @@ type Props = {
   selectedBlock: string | null;
   onSelectBlock: (blockId: string) => void;
   blockValues?: Record<string, number | null> | null;
-  blockCoverage?: Record<string, string | null> | null;
   era?: "estimated" | "observed" | null;
 };
 
@@ -197,7 +196,7 @@ export default function ParaMap(props: Props) {
         <div className="text-[11px] text-muted-foreground">
           {props.blockValues && props.blockValues[hoveredBlock] !== undefined && props.blockValues[hoveredBlock] !== null
             ? `${Math.round(props.blockValues[hoveredBlock]!).toLocaleString()} detections (${props.era === "estimated" ? "Estimated VIIRS-eq" : "Observed VIIRS"})`
-            : `NULL / Unobserved${props.blockCoverage?.[hoveredBlock] ? ` · Coverage: ${props.blockCoverage[hoveredBlock]}` : " (No coverage)"}`}
+            : "No recorded detections / NULL"}
         </div>
       </div>
     )}

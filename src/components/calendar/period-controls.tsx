@@ -14,7 +14,7 @@ export function PeriodControls() {
     const index = year * 12 + month - 1 + delta;
     setPeriod(Math.floor(index / 12), index % 12 + 1);
   }
-  return <section data-tour="timeline-controls" aria-label="Observation period controls" className="rounded-xl border border-border bg-card p-4">
+  return <section aria-label="Observation period controls" className="rounded-xl border border-border bg-card p-4">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3"><CalendarDays className="size-5 text-primary" aria-hidden="true" /><div><h2 className="text-sm font-medium">Observation period</h2><p className="mt-1 text-xs text-muted-foreground">2002–2020 verified archive · 2021+ pending data</p></div></div>
       <div className="flex flex-wrap items-end gap-2">
