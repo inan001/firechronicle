@@ -37,6 +37,24 @@ Because VIIRS operates with a significantly smaller pixel footprint and higher t
 
 Crucially, differences in sensor resolution and detection thresholds create a major **sensor discontinuity** between the two observational records. Comparing or aggregating raw Aqua MODIS counts (2002–2011) with raw VIIRS counts (2012–2020) without cross-sensor calibration distorts interpretations of multi-decadal fire-detection trends. Directly summing raw counts across the 2012 sensor transition is methodologically invalid.
 
+### Why Pará, Brazil?
+
+Pará is a scientifically meaningful case-study region within the Brazilian Amazon, where historical burning, deforestation-related land-use pressures, and conservation challenges create an important setting for examining long-term satellite-detected fire activity. Regional fire-management research documents the relationship between fire patterns, land use, and environmental pressures in Pará.
+
+FireChronicle focuses on a clearly defined geographic area rather than assuming that a single statistical calibration can represent every biome or country. The official IBGE state boundary and **568 canonical approximately 50 km equal-area grid blocks (EPSG:6933)** provide a consistent spatial framework for analyzing historical MODIS and VIIRS detections.
+
+This regional focus supports geographically interpretable results, transparent validation, and a reproducible case study of satellite sensor harmonization. **The frozen NB2 v1.0 model is calibrated specifically for Pará; applying it elsewhere would require additional regional calibration and evaluation.** For regional fire-management context, see [IPAM — Gestão do Fogo na Amazônia: Pará](https://ipam.org.br/wp-content/uploads/2025/10/PA-PARA-Gestao-do-Fogo-Amazonia_WSM_V8-ALTA-1.pdf).
+
+### Current Scope & Future Expansion
+
+**Current capability:** FireChronicle is a working, regionally calibrated historical Earth-observation platform focused on **Pará, Brazil**. Its 568 canonical approximately 50 km equal-area grid blocks and frozen NB2 v1.0 model support harmonized analysis of satellite active-fire detections within the project's defined **2002–2020 historical dataset**.
+
+**Future direction:** Team Meghna intends to extend this approach to **other Brazilian Amazon states**, with the longer-term goal of investigating coverage across the **wider Amazon basin and potentially other fire-affected regions**. We also aim to explore extending the historical record beyond December 2020, improving scientific accessibility, and strengthening regional and temporal validation.
+
+**Scientific requirements for expansion:** Broader coverage is not a simple geographic extension of the existing model. Each additional region or observation period would require authentic satellite data processing, spatial-grid preparation, assessment of Day/Night observation completeness, and appropriate recalibration or independent validation of the MODIS–VIIRS harmonization model. Post-2020 expansion would additionally require assessing changes in Aqua MODIS sampling conditions associated with documented orbital drift beginning in 2021.
+
+**Development status:** These are proposed future research and engineering directions, **not features currently deployed or validated**. FireChronicle does not currently provide global coverage, live wildfire alerts, or future-fire prediction.
+
 ### The Scientific Solution: Empirically Calibrated Harmonization
 FireChronicle bridges this 10-year observational gap:
 1. **Nine Years of Direct Overlap:** Calibrated on 23,010 paired-positive cell-months ($M > 0$ and $V > 0$) across the 2012–2020 concurrent observation window.
@@ -211,7 +229,7 @@ FireChronicle's verified dataset covers the 19-year study window from **July 200
 1. **Estimated Era (July 2002 – December 2011 · 114 operational months):** Prior to the operational launch of Suomi-NPP VIIRS, active fire detection relied on Aqua MODIS (1 km). FireChronicle uses the frozen NB2 v1.0 model to estimate VIIRS-equivalent detections across this 9.5-year historical period.
 2. **Observed Era (January 2012 – December 2020 · 108 operational months):** Following the launch of Suomi-NPP VIIRS (375 m), both sensors operated concurrently. This 9-year overlap period provided the empirical calibration foundation (23,010 paired-positive cell-months) used to fit and validate the NB2 v1.0 model.
 3. **Analytical Historical Scope vs. Real-Time Feeds:** FireChronicle is architected and presented as a multi-decadal historical analytical archive and research platform. It does not ingest real-time satellite telemetry or function as an active-fire alert service.
-4. **Historical Study Cutoff (December 2020):** FireChronicle analyzes a defined historical dataset ending in December 2020. The July 2002–December 2011 period is reconstructed using statistical estimates, while the January 2012–December 2020 period supplies observed VIIRS records and the sensor-overlap data used for calibration and evaluation. The platform is a historical analysis tool, not a live-fire feed.
+4. **Why the Study Ends in December 2020 — Dataset Scope & Aqua MODIS Orbital Consistency:** FireChronicle's processed and validated historical dataset ends in December 2020, providing a defined study window before the documented changes to Aqua's orbital maintenance and overpass timing beginning in 2021. NASA reports that Aqua completed its final maneuvers for maintaining the nominal 1:30 PM equator-crossing time and 705 km orbit on **March 18, 2021**, began drifting toward later overpass times in **July 2021**, and entered its constellation-exit phase in **January 2022**. Such changes can affect observation geometry and spatial sampling, making the post-2020 period relevant to additional coverage and calibration checks before extending a harmonized historical series. **This cutoff is a conservative boundary for the dataset analyzed in FireChronicle, not the end of MODIS data availability or a finding that all later observations are invalid.** Extending the platform beyond 2020 would require processing additional observations, checking coverage and sampling consistency, and evaluating whether the frozen NB2 calibration remains appropriate. [NASA MODIS mission notice](https://modis.gsfc.nasa.gov/news/individual.php?news_id=100389) · [NASA LAADS acquisition guidance](https://ladsweb.modaps.eosdis.nasa.gov/alerts-and-issues/194125)
 5. **Timeline Accounting:** Across the full 19-year calendar grid:
    - **228 Calendar Months:** Complete monthly matrix (January 2002 – December 2020).
    - **6 Pre-Commissioning Months:** January–June 2002 (Aqua launched May 4, 2002; operational science records began July 2002; preserved as `NULL`).
