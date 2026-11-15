@@ -366,9 +366,7 @@ npm run build
 
 ### AI-Assisted Development
 
-FireChronicle was developed by Team Meghna with substantial assistance from generative AI and agentic development tools, including Antigravity and Claude, for software implementation, debugging, documentation, testing, and quality assurance.
-
-Team members guided the project's requirements, scientific objectives, methodological choices, and final review. The model's reported evaluation results, data provenance, implementation, and limitations are documented in this repository for independent examination.
+Team Meghna utilized AI-assisted development tools to support selected software implementations, debugging, code refinement, and testing throughout FireChronicle's development. The team directed the project's objectives, reviewed the resulting work, and takes responsibility for the final submission.
 
 ### License & Submission Notice
 
